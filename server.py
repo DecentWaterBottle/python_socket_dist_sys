@@ -1,4 +1,78 @@
 import socket
+import threading
+
+
+class ClientThread(threading.Thread):
+
+    def __init__(self, client_address, client_socket, identity):
+        threading.Thread.__init__(self)
+        self.c_socket = client_socket
+        print("Connection Number: " + str(identity))
+        print("New Connection Added as: ", client_address)
+
+    def run(self):
+        employee_locked = False
+        employee_id = ""
+        while True:
+            # print("Connected from: ", addr)
+            if not employee_locked:
+                data = self.c_socket.recv(512).decode()
+                for employee in employees:
+                    if data == employee.get("id"):
+                        reply = "True".encode()
+                        employee_locked = True
+                        employee_id = data
+                        break
+                if not employee_locked:
+                    print("Employee is false")
+                    reply = "False".encode()
+                self.c_socket.send(reply)
+
+            else:
+                menu_choice = self.c_socket.recv(512).decode()
+                if menu_choice == "S":
+                    reply = "True".encode()
+                    self.c_socket.send(reply)
+                    sal_choice = self.c_socket.recv(512).decode()
+                    if sal_choice == "C":
+                        reply = find_employee_current_salary(employee_id).encode()
+                    elif sal_choice == "T":
+                        reply = "continue".encode()
+                        self.c_socket.send(reply)
+                        year = self.c_socket.recv(512).decode()
+                        reply = f"{find_employee_total_salary(employee_id, year)}".encode()
+                    else:
+                        reply = "False".encode()
+                        self.c_socket.send(reply)
+                        continue
+                    self.c_socket.send(reply)
+
+                elif menu_choice == "L":
+                    reply = "True".encode()
+                    self.c_socket.send(reply)
+                    leave_choice = self.c_socket.recv(512).decode()
+                    if leave_choice == "C":
+                        reply = find_employee_current_leave(employee_id).encode()
+                    elif leave_choice == "Y":
+                        reply = "continue".encode()
+                        self.c_socket.send(reply)
+                        year = self.c_socket.recv(512).decode()
+                        reply = f"{find_employee_year_leave(employee_id, year)}".encode()
+                    else:
+                        reply = "False".encode()
+                        self.csocket.send(reply)
+                        continue
+                    self.c_socket.send(reply)
+                else:
+                    reply = "False".encode()
+                    self.c_socket.send(reply)
+                    continue
+
+                continue_choice = self.c_socket.recv(512).decode()
+                if continue_choice == "C":
+                    employee_locked = False
+                elif continue_choice == "X":
+                    break
 
 
 def find_employee_current_salary(employee_id):
@@ -141,71 +215,22 @@ employees = [
     }
 ]
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.bind((HOST, PORT))
-    sock.listen()
-    conn, addr = sock.accept()
-    employee_locked = False
-    employee_id = ""
-    while True:
-        print("Connected from: ", addr)
-        if not employee_locked:
-            data = conn.recv(512).decode()
-            for employee in employees:
-                if data == employee.get("id"):
-                    reply = "True".encode()
-                    employee_locked = True
-                    employee_id = data
-                    break
-            if not employee_locked:
-                print("Employee is false")
-                reply = "False".encode()
-            conn.send(reply)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.bind((HOST, PORT))
+# with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+#     sock.bind((HOST, PORT))
+# sock.listen()
+# conn, addr = sock.accept()
+# employee_locked = False
+# employee_id = ""
+counter = 0
+while True:
+    sock.listen(1)
+    my_socket, clientAddress = sock.accept()
+    counter = counter + 1
+    new_thread = ClientThread(clientAddress, my_socket, counter)
+    new_thread.start()
 
-        else:
-            menu_choice = conn.recv(512).decode()
-            if menu_choice == "S":
-                reply = "True".encode()
-                conn.send(reply)
-                sal_choice = conn.recv(512).decode()
-                if sal_choice == "C":
-                    reply = find_employee_current_salary(employee_id).encode()
-                elif sal_choice == "T":
-                    reply = "continue".encode()
-                    conn.send(reply)
-                    year = conn.recv(512).decode()
-                    reply = f"{find_employee_total_salary(employee_id, year)}".encode()
-                else:
-                    reply = "False".encode()
-                    conn.send(reply)
-                    continue
-                conn.send(reply)
-
-            elif menu_choice == "L":
-                reply = "True".encode()
-                conn.send(reply)
-                leave_choice = conn.recv(512).decode()
-                if leave_choice == "C":
-                    reply = find_employee_current_leave(employee_id).encode()
-                elif leave_choice == "Y":
-                    reply = "continue".encode()
-                    conn.send(reply)
-                    year = conn.recv(512).decode()
-                    reply = f"{find_employee_year_leave(employee_id, year)}".encode()
-                else:
-                    reply = "False".encode()
-                    conn.send(reply)
-                    continue
-                conn.send(reply)
-            else:
-                reply = "False".encode()
-                conn.send(reply)
-                continue
-
-            continue_choice = conn.recv(512).decode()
-            if continue_choice == "C":
-                employee_locked = False
-            elif continue_choice == "X":
-                employee_locked = False
 
 
