@@ -149,8 +149,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     employee_id = ""
     while True:
         print("Connected from: ", addr)
-        # if not data:
-        #     break
         if not employee_locked:
             data = conn.recv(512).decode()
             for employee in employees:
@@ -166,7 +164,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
         else:
             menu_choice = conn.recv(512).decode()
-
             if menu_choice == "S":
                 reply = "True".encode()
                 conn.send(reply)
@@ -180,6 +177,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     reply = f"{find_employee_total_salary(employee_id, year)}".encode()
                 else:
                     reply = "False".encode()
+                    conn.send(reply)
+                    continue
                 conn.send(reply)
 
             elif menu_choice == "L":
@@ -195,10 +194,18 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     reply = f"{find_employee_year_leave(employee_id, year)}".encode()
                 else:
                     reply = "False".encode()
+                    conn.send(reply)
+                    continue
                 conn.send(reply)
-
             else:
                 reply = "False".encode()
                 conn.send(reply)
+                continue
+
+            continue_choice = conn.recv(512).decode()
+            if continue_choice == "C":
+                employee_locked = False
+            elif continue_choice == "X":
+                employee_locked = False
 
 
